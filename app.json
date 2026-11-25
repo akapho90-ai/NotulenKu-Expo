@@ -15,7 +15,8 @@
         }
       ],
       "expo-router",
-      "./plugins/withNotulenKuService"
+      "./plugins/withNotulenKuService",
+      "expo-asset"
     ],
     "android": {
       "package": "id.notulenku.experiment",
@@ -24,8 +25,15 @@
         "android.permission.RECORD_AUDIO",
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.FOREGROUND_SERVICE_MICROPHONE",
-        "android.permission.POST_NOTIFICATIONS"
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
       ]
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5f745288-63d8-4954-8e4a-416bd30e7eac"
+      }
     }
   }
 }
