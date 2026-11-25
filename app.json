@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "NotulenKu Expo",
+    "slug": "notulenku-expo",
+    "scheme": "notulenku-expo",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "plugins": [
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "NotulenKu memerlukan mikrofon untuk merekam rapat.",
+          "enableBackgroundRecording": true
+        }
+      ],
+      "expo-router",
+      "./plugins/withNotulenKuService"
+    ],
+    "android": {
+      "package": "id.notulenku.experiment",
+      "permissions": [
+        "RECORD_AUDIO",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MICROPHONE",
+        "android.permission.POST_NOTIFICATIONS"
+      ]
+    }
+  }
+}

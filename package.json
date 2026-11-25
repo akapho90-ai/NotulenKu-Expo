@@ -1,0 +1,29 @@
+{
+  "name": "notulenku-expo",
+  "version": "0.1.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "lint": "expo lint"
+  },
+  "dependencies": {
+    "expo": "~54.0.0",
+    "expo-router": "~6.0.0",
+    "expo-audio": "~1.0.0",
+    "expo-file-system": "~19.0.0",
+    "expo-constants": "~18.0.0",
+    "expo-dev-client": "~6.0.0",
+    "react": "19.1.0",
+    "react-native": "0.81.0",
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-screens": "~4.16.0",
+    "expo-sqlite": "~16.0.0",
+    "notulenku-recorder": "file:./modules/notulenku-recorder"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.2",
+    "@types/react": "~19.1.0"
+  }
+}
