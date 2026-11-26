@@ -1,6 +1,6 @@
 import {markSegment,setSegmentTranscript,addTranscriptLines,db} from './db';
 import type {Segment} from '../types';
-const API_URL=(process.env.EXPO_PUBLIC_NOTULENKU_API_URL||'').replace(/\\/$/,'');
+const API_URL=(process.env.EXPO_PUBLIC_NOTULENKU_API_URL||'').replace(/\/$/,'');
 async function sendSegment(segment:Segment,sessionId:string){
  if(!API_URL) throw new Error('Set EXPO_PUBLIC_NOTULENKU_API_URL.');
  if(!segment.uri) throw new Error('Segment audio URI missing.');
