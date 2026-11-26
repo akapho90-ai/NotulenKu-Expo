@@ -1,16 +1,46 @@
 package expo.modules.notulenkurecorder
+
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
+import expo.modules.kotlin.functions.Queues
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
-import android.content.Intent
-import android.content.Context
-import org.json.JSONArray
-class NotulenKuRecorderModule:Module(){
- override fun definition()=ModuleDefinition { Name("NotulenKuRecorder")
- Function("start") { sessionId:String, segmentSeconds:Int ->
-   val c=appContext.reactContext ?: throw Exception("Context unavailable")
-   val i=Intent(c,NotulenKuRecordingService::class.java).apply{action="START";putExtra("sessionId",sessionId);putExtra("segmentSeconds",segmentSeconds)}
-   if(android.os.Build.VERSION.SDK_INT>=26)c.startForegroundService(i) else c.startService(i); true
- }
- Function("stop") { val c=appContext.reactContext ?: throw Exception("Context unavailable");if(android.os.Build.VERSION.SDK_INT>=26)c.startService(Intent(c,NotulenKuRecordingService::class.java).apply{action="STOP"});true }
- Function("getState") { val c=appContext.reactContext ?: throw Exception("Context unavailable"); val f=c.getSharedPreferences("nk_native_rec",Context.MODE_PRIVATE); mapOf("active" to f.getBoolean("active",false),"sessionId" to (f.getString("sessionId",null)?:""),"segments" to (f.getString("segments","[]")?:"[]"),"startedAt" to f.getLong("startedAt",0L),"segmentSeconds" to f.getInt("segmentSeconds",180)) }
- } }
+
+class NotulenKuRecorderModule : Module() {
+    override fun definition() = ModuleDefinition {
+        Name("NotulenKuRecorder")
+
+        AsyncFunction("start") { sessionId: String, segmentSeconds: Int ->
+            val context = checkNotNull(appContext.reactContext)
+            check(context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                "Izin mikrofon diperlukan."
+            }
+            require(RecordingRecovery.sessionName.matches(sessionId)) { "ID sesi tidak valid." }
+            val state = NotulenKuRecordingService.state
+            check(state == null || !state.active) { "Rekaman sedang berlangsung." }
+            val intent = Intent(context, NotulenKuRecordingService::class.java).apply {
+                action = NotulenKuRecordingService.START
+                putExtra("sessionId", sessionId)
+                putExtra("segmentSeconds", segmentSeconds)
+            }
+            if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(intent) else context.startService(intent)
+            Unit
+        }.runOnQueue(Queues.MAIN)
+
+        AsyncFunction("stop") { sessionId: String ->
+            NotulenKuRecordingService.stopRecording(sessionId)
+        }.runOnQueue(Queues.MAIN)
+
+        AsyncFunction("getState") {
+            NotulenKuRecordingService.state?.toMap()
+        }.runOnQueue(Queues.MAIN)
+
+        AsyncFunction("recover") {
+            val context = checkNotNull(appContext.reactContext)
+            RecordingRecovery.recover(context, NotulenKuRecordingService.state?.sessionId)
+                .map { it.toMap() }
+        }
+    }
+}

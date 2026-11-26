@@ -1,0 +1,39 @@
+name: Stage 1 Source Checks
+on:
+  push:
+    branches:
+      - stage1/stabilization-fixes
+jobs:
+  source-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: node --test tests/stage1.test.cjs
+      - run: npx --yes expo-doctor
+  android-debug:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - run: npm ci
+      - run: bash gradlew :app:assembleDebug --console=plain
+        working-directory: android
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stage1-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
