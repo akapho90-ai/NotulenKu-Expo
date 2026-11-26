@@ -131,7 +131,7 @@ export default function Home() {
    const id = 'nk_'+Date.now();
    await nativeRecorder.start(id,180);
    // Dispatching a foreground-service intent does not acknowledge a running MediaRecorder.
-   const deadline = Date.now()+8_000;
+   const deadline = Date.now()+20_000;
    do {
     const state = await nativeRecorder.getState();
     if (state?.sessionId === id && state.status !== 'starting') {
@@ -142,7 +142,8 @@ export default function Home() {
     }
     await new Promise(resolve => setTimeout(resolve,100));
    } while (Date.now() < deadline);
-   Alert.alert('Status rekaman belum dikonfirmasi','NotulenKu masih memeriksa status perekam Android.');
+   // Polling will adopt a late acknowledgement without covering the Stop button with a modal.
+   console.warn('Recorder start is awaiting Android confirmation');
   } catch (error) {
    Alert.alert('Gagal mulai',message(error));
   } finally {
@@ -216,7 +217,7 @@ export default function Home() {
   <Text style={styles.greeting}>Ruang rapat cerdas</Text><Text style={styles.sub}>Rekam · pecah segmen · transkripsikan · rangkum</Text>
   <View style={styles.hero}><Text style={styles.badge}>NOTULENKU EXPO LAB</Text><Text style={styles.heroTitle}>{isRecording?'Rekaman sedang berlangsung':'Semua detail rapat, tertangkap.'}</Text><Text style={styles.heroDesc}>Rekaman dikelola service Android native. File segmen disimpan lokal.</Text>
    <View style={styles.timer}><Text style={styles.timerLabel}>DURASI SESI</Text><Text style={styles.timerValue}>{fmt(elapsed)}</Text><Text style={styles.timerNote}>{isRecording?'● REC ACTIVE':'READY'}</Text></View>
-   <Pressable style={[styles.button,isRecording&&styles.stopButton]} onPress={isRecording?end:begin} disabled={recorderBusy||(!isRecording&&(!ready||busy))}><Text style={styles.buttonText}>{isRecording?'■  Akhiri rekaman':'●  Mulai rekaman'}</Text></Pressable>
+   <Pressable style={[styles.button,isRecording&&styles.stopButton]} onPress={isRecording?end:begin} disabled={recorderBusy||(!isRecording&&(!ready||busy))}><Text style={styles.buttonText}>{recorderBusy?(isRecording?'Menyimpan rekaman…':'Menyiapkan perekam…'):(isRecording?'■  Akhiri rekaman':'●  Mulai rekaman')}</Text></Pressable>
   </View>
   {selected&&selected!==activeId&&<View style={styles.panel}><Text style={styles.panelTitle}>Session tools</Text><Text style={styles.panelSub}>{selected}</Text><Pressable style={styles.secondaryButton} onPress={()=>process(selected)} disabled={busy}><Text style={styles.secondaryText}>{busy?'Memproses…':'Transkripsikan segmen tersimpan'}</Text></Pressable><Pressable style={styles.secondaryButton} onPress={()=>process(selected,true)} disabled={busy}><Text style={styles.secondaryText}>Retry segmen gagal</Text></Pressable><Pressable style={styles.secondaryButton} onPress={()=>summary(selected)} disabled={busy}><Text style={styles.secondaryText}>Buat ringkasan AI</Text></Pressable></View>}
   {busy&&<View style={{margin:12,alignItems:'center'}}><ActivityIndicator color="#2765D9"/><Text style={{color:'#718096',marginTop:8}}>{pipelineProgress.total?`Pipeline ${pipelineProgress.done}/${pipelineProgress.total}`:'Menyiapkan pipeline…'}</Text></View>}
