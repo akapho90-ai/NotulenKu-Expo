@@ -4,8 +4,7 @@ class NotulenKuRecordingService:Service(){
  private var recorder:MediaRecorder?=null;private var session="";private var seg=0;private var segmentSeconds=180;private var segmentStarted=0L;private var sessionStarted=0L;private val handler=Handler(Looper.getMainLooper());private val files=JSONArray();private var dir:File?=null
  companion object{const val CHANNEL="nk_native_recording";const val ID=9137}
  override fun onCreate(){super.onCreate();if(Build.VERSION.SDK_INT>=26){getSystemService(NotificationManager::class.java).createNotificationChannel(NotificationChannel(CHANNEL,"NotulenKu Recording",NotificationManager.IMPORTANCE_LOW))}}
- override fun onStartCommand(i:Intent?,flags:Int,startId:Int):Int { when(i?.action){
- "START"->{if(recorder!=null)return START_STICKY
+ override fun onStartCommand(i:Intent?,flags:Int,startId:Int):Int {\n  if(i?.action==null){getSharedPreferences("nk_native_rec",0).edit().putBoolean("active",false).apply();handler.removeCallbacks(rotate);stopForeground(STOP_FOREGROUND_REMOVE);stopSelf();return START_NOT_STICKY}\n  when(i.action){\n "START"->{if(recorder!=null)return START_STICKY
   session=i.getStringExtra("sessionId")?:System.currentTimeMillis().toString();segmentSeconds=(i.getIntExtra("segmentSeconds",180)).coerceIn(30,600)
   val prefs=getSharedPreferences("nk_native_rec",0);val previousSession=prefs.getString("sessionId","")?: "";sessionStarted=if(previousSession==session)prefs.getLong("startedAt",0L).takeIf{it>0}?:System.currentTimeMillis() else System.currentTimeMillis()
   if(previousSession==session){try{val saved=JSONArray(prefs.getString("segments","[]")?: "[]");for(j in 0 until saved.length())files.put(saved.getJSONObject(j))}catch(_:Exception){};seg=(0 until files.length()).mapNotNull{try{files.getJSONObject(it).optInt("index",-1)}catch(_:Exception){null}}.maxOrNull()?.plus(1)?:0}
