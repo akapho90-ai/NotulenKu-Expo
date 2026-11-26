@@ -1,1 +1,24 @@
-const {withAndroidManifest,withDangerousMod}=require('@expo/config-plugins');const fs=require('fs'),path=require('path');module.exports=function(config){config=withAndroidManifest(config,c=>{const m=c.modResults.manifest;m.$['xmlns:tools']=m.$['xmlns:tools']||'http://schemas.android.com/tools';const a=m.application[0];a.service=a.service||[];const name='expo.modules.notulenkurecorder.NotulenKuRecordingService';if(!a.service.some(s=>s.$['android:name']===name))a.service.push({$:{'android:name':name,'android:exported':'false','android:foregroundServiceType':'microphone'}});const perms=['android.permission.RECORD_AUDIO','android.permission.FOREGROUND_SERVICE','android.permission.FOREGROUND_SERVICE_MICROPHONE','android.permission.POST_NOTIFICATIONS'];m['uses-permission']=m['uses-permission']||[];for(const p of perms)if(!m['uses-permission'].some(x=>x.$['android:name']===p))m['uses-permission'].push({$:{'android:name':p}});return c});config=withDangerousMod(config,['android',async c=>{const root=c.modRequest.projectRoot,src=path.join(root,'modules/notulenku-recorder/android/src/main/java/expo/modules/notulenkurecorder'),dest=path.join(root,'android/app/src/main/java/expo/modules/notulenkurecorder');fs.mkdirSync(dest,{recursive:true});for(const f of fs.readdirSync(src))fs.copyFileSync(path.join(src,f),path.join(dest,f));return c}]);return config};
+const {withAndroidManifest} = require('@expo/config-plugins');
+
+module.exports = config => withAndroidManifest(config, mod => {
+  const manifest = mod.modResults.manifest;
+  const application = manifest.application[0];
+  application.service ||= [];
+  const name = 'expo.modules.notulenkurecorder.NotulenKuRecordingService';
+  if (!application.service.some(service => service.$['android:name'] === name)) {
+    application.service.push({$: {
+      'android:name': name,
+      'android:exported': 'false',
+      'android:foregroundServiceType': 'microphone',
+    }});
+  }
+
+  manifest['uses-permission'] ||= [];
+  for (const permission of ['RECORD_AUDIO', 'FOREGROUND_SERVICE', 'FOREGROUND_SERVICE_MICROPHONE', 'POST_NOTIFICATIONS']) {
+    const name = 'android.permission.' + permission;
+    if (!manifest['uses-permission'].some(entry => entry.$['android:name'] === name)) {
+      manifest['uses-permission'].push({$: {'android:name': name}});
+    }
+  }
+  return mod;
+});

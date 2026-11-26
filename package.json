@@ -28,5 +28,12 @@
   "devDependencies": {
     "typescript": "~5.9.2",
     "@types/react": "~19.1.0"
+  },
+  "expo": {
+    "doctor": {
+      "appConfigFieldsNotSyncedCheck": {
+        "enabled": false
+      }
+    }
   }
 }
