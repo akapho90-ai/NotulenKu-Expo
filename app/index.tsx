@@ -24,10 +24,10 @@ export default function Home(){
  const nativeSegmentsRef=useRef<any[]>([]);
  const sessionStart=useRef<number|null>(null);
  const segStart=useRef<number|null>(null);
- useEffect(()=>{initializeDb();AudioModule.requestRecordingPermissionsAsync().then(x=>setPermission(x.granted)).catch(()=>{});refreshSessions()},[]);
+ useEffect(()=>{initializeDb();AudioModule.requestRecordingPermissionsAsync().then(x=>setPermission(x.granted)).catch(()=>{});refreshSessions();pollNative()},[]);
  const refreshSessions=()=>setSessions(listSessions());
  const refreshSegments=(sid:string)=>setSegments(listSegments(sid));
- const pollNative=async(sid?:string)=>{try{const st=await nativeRecorder.getState();setNativeActive(!!st.active);if(st.sessionId){nativeSegmentsRef.current=typeof st.segments==='string'?JSON.parse(st.segments||'[]'):Array.from(st.segments||[]);syncNativeSegments(st.sessionId,nativeSegmentsRef.current,Number(st.segmentSeconds||180));if(sid)refreshSegments(sid);setCurrentSeg(st.active?Number(nativeSegmentsRef.current.length):null);}}catch(e){console.warn('native state poll',e)} };
+ const pollNative=async(sid?:string)=>{try{const st=await nativeRecorder.getState();setNativeActive(!!st.active);if(st.sessionId){if(st.active&&!activeSession){setActiveSession(st.sessionId);sessionStart.current=Number(st.startedAt)||Date.now();setElapsed(Math.max(0,Date.now()-sessionStart.current));}nativeSegmentsRef.current=typeof st.segments==='string'?JSON.parse(st.segments||'[]'):Array.from(st.segments||[]);syncNativeSegments(st.sessionId,nativeSegmentsRef.current,Number(st.segmentSeconds||180));if(sid)refreshSegments(sid);setCurrentSeg(st.active?Number(nativeSegmentsRef.current.length):null);}}catch(e){console.warn('native state poll',e)} };
  useEffect(()=>{const t=setInterval(()=>pollNative(activeSession||undefined),1200);return()=>clearInterval(t)},[activeSession]);
  const begin=async()=>{
   if(busy||recStatus.isRecording)return;
