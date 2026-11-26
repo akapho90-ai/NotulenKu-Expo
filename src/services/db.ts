@@ -54,3 +54,10 @@ export function getTranscriptLinesRaw(sessionId:string){
 export function syncNativeSegments(sessionId:string, nativeSegments:any[], segmentSeconds:number){
  for(const n of nativeSegments||[]){const seq=Number(n.index);const exists=db.getFirstSync<any>('SELECT id FROM segments WHERE session_id=? AND sequence=?',[sessionId,seq]);if(exists)continue;const started=new Date(Number(n.startedAtMs)||Date.now()).toISOString();const ended=new Date(Number(n.endedAtMs)||Date.now()).toISOString();const duration=Math.max(0,(Number(n.endedAtMs)||Date.now())-(Number(n.startedAtMs)||Date.now()));db.runSync('INSERT INTO segments(session_id,sequence,started_at,ended_at,uri,status,duration_ms,start_offset_ms) VALUES(?,?,?,?,?,?,?,?)',sessionId,seq,started,ended,n.path,'saved',duration,Number(n.offsetMs)||seq*segmentSeconds*1000);}
 }
+
+export function ensureRecoveredSession(id:string,startedAtMs:number){
+ const exists=db.getFirstSync<any>('SELECT id FROM sessions WHERE id=?',[id]);
+ if(exists)return;
+ const started=new Date(startedAtMs>0?startedAtMs:Date.now()).toISOString();
+ db.runSync('INSERT OR IGNORE INTO sessions(id,title,started_at,status,created_at) VALUES(?,?,?,?,?)',id,'Recovered recording',started,'recording',new Date().toISOString());
+}
