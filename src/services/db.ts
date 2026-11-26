@@ -45,7 +45,8 @@ export function setSegmentStartOffset(id:number,offsetMs:number){
  db.runSync('UPDATE segments SET start_offset_ms=? WHERE id=?',offsetMs,id);
 }
 export function setSessionStatus(id:string,status:string){
- db.runSync('UPDATE sessions SET ended_at=?,status=? WHERE id=?',new Date().toISOString(),status,id);
+ const endedAt=status==='recording'?null:new Date().toISOString();
+ db.runSync('UPDATE sessions SET ended_at=?,status=? WHERE id=?',endedAt,status,id);
 }
 export function getTranscriptLinesRaw(sessionId:string){
  return db.getAllSync<any>('SELECT offset_ms as offsetMs,speaker,text FROM transcript_lines WHERE session_id=? ORDER BY offset_ms',sessionId);
