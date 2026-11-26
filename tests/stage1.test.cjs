@@ -161,3 +161,24 @@ test('tracked Android project declares a private microphone service and resolves
  const recorder = result.modules.find(entry=>entry.packageName==='notulenku-recorder');
  assert.ok(recorder?.projects.some(project=>project.modules.includes(packageName+'.NotulenKuRecorderModule')));
 });
+
+test('file-only legacy recovery preserves the SQLite timeline and recorded status', () => {
+ const db = openDb();
+ const store = loadService('db',{'expo-sqlite':{openDatabaseSync:()=>db}});
+ store.initializeDb();
+ store.syncRecording(checkpoint('archive'));
+ const before = store.listSessions()[0];
+ const recovered = checkpoint('archive','interrupted');
+ recovered.stopUncertain = true;
+ recovered.startedAt += 10_000;
+ recovered.segments = JSON.stringify(JSON.parse(recovered.segments).map(segment => ({
+  ...segment,estimatedTiming:true,startedAtMs:segment.startedAtMs+10_000,
+  endedAtMs:segment.endedAtMs+10_000,offsetMs:segment.offsetMs+10_000,
+ })));
+ for (let i=0;i<2;i++) store.syncRecording(recovered,true);
+ assert.deepEqual({...store.listSessions()[0]},{...before});
+ assert.equal(store.listSegments('archive')[1].startOffsetMs,181_000);
+ assert.equal(store.listSegments('archive')[1].startedAt,new Date(startedAt+181_000).toISOString());
+ store.syncRecording({...recovered,sessionId:'unknown'},true);
+ assert.equal(store.listSessions().find(row=>row.id==='unknown').status,'interrupted');
+});

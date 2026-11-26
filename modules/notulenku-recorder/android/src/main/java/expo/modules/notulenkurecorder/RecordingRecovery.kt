@@ -13,7 +13,8 @@ internal data class RecordingState(
     val segmentSeconds: Int,
     val status: String,
     val segments: JSONArray,
-    val error: String? = null
+    val error: String? = null,
+    val stopUncertain: Boolean = false
 ) {
     val active get() = status == "recording"
 
@@ -24,7 +25,8 @@ internal data class RecordingState(
         "status" to status,
         "active" to active,
         "segments" to segments.toString(),
-        "error" to error
+        "error" to error,
+        "stopUncertain" to stopUncertain
     )
 }
 
@@ -96,7 +98,8 @@ internal object RecordingRecovery {
                 val file = byIndex[index]
                 val duration = file?.let(::audioDuration)
                 val entry = metadata[index] ?: pending?.takeIf { pendingIndex == index }
-                val start = entry?.optLong("startedAtMs")?.takeIf { it > 0 }
+                val knownStart = entry?.optLong("startedAtMs")?.takeIf { it > 0 }
+                val start = knownStart
                     ?: file?.lastModified()?.takeIf { it > 0 }?.let { (it - (duration ?: 0)).coerceAtLeast(lastEnd) }
                     ?: continue
                 if (firstStart == null) firstStart = start
@@ -104,23 +107,23 @@ internal object RecordingRecovery {
                     ?: (start - firstStart).coerceAtLeast(0)
                 if (file != null && duration != null) {
                     lastEnd = start + duration
-                    segments.put(segment(file, index, start, duration, offset))
+                    segments.put(segment(file, index, start, duration, offset).put("estimatedTiming", knownStart == null))
                 } else {
                     complete = false
                     val end = entry?.optLong("endedAtMs")?.takeIf { it >= start } ?: start
                     segments.put(JSONObject().put("index", index).put("startedAtMs", start)
-                        .put("endedAtMs", end).put("offsetMs", offset))
+                        .put("endedAtMs", end).put("offsetMs", offset).put("estimatedTiming", knownStart == null))
                 }
             }
             val startedAt = firstStart?.takeIf { it > 0 } ?: return@mapNotNull null
-            val cleanStop = complete && (checkpoint?.optString("status") == "recorded" ||
-                (checkpoint == null && legacy && !prefs.getBoolean("active", false) && segments.length() > 0))
+            val cleanStop = complete && checkpoint?.optString("status") == "recorded"
+            val stopUncertain = complete && checkpoint == null && !(legacy && prefs.getBoolean("active", false))
             val status = if (cleanStop) {
                 "recorded"
             } else {
                 "interrupted"
             }
-            RecordingState(directory.name, startedAt, seconds, status, segments)
+            RecordingState(directory.name, startedAt, seconds, status, segments, stopUncertain = stopUncertain)
         }
     }
 

@@ -75,18 +75,32 @@ export function syncRecording(state: RecorderState, recovered = false) {
  const end = segments.reduce((latest, segment) => Math.max(latest, segment.endedAtMs),state.startedAt);
  const endedAt = state.active ? null : new Date(end).toISOString();
  db.withTransactionSync(() => {
+  const archived = recovered ? db.getFirstSync<{status: string; startedAt: string}>(
+   'SELECT status,started_at as startedAt FROM sessions WHERE id=?',state.sessionId) : null;
+  const keepRecorded = state.stopUncertain && archived?.status === 'recorded';
   db.runSync(`INSERT INTO sessions(id,title,started_at,ended_at,status,created_at) VALUES(?,?,?,?,?,?)
-   ON CONFLICT(id) DO UPDATE SET started_at=excluded.started_at,ended_at=excluded.ended_at,status=excluded.status`,
-   state.sessionId,recovered ? 'Recovered recording' : 'Rapat baru',startedAt,endedAt,state.status,startedAt);
+   ON CONFLICT(id) DO UPDATE SET started_at=CASE WHEN ? THEN sessions.started_at ELSE excluded.started_at END,
+    ended_at=CASE WHEN ? THEN COALESCE(sessions.ended_at,excluded.ended_at) ELSE excluded.ended_at END,status=excluded.status`,
+   state.sessionId,recovered ? 'Recovered recording' : 'Rapat baru',startedAt,endedAt,
+    keepRecorded ? 'recorded' : state.status,startedAt,recovered ? 1 : 0,keepRecorded ? 1 : 0);
   for (const segment of segments) {
    const sequence = segment.index;
    if (!Number.isSafeInteger(sequence) || sequence < 0) continue;
-   const start = new Date(segment.startedAtMs).toISOString();
-   const finish = new Date(segment.endedAtMs).toISOString();
-   const duration = Math.max(0,segment.endedAtMs-segment.startedAtMs);
-   const offset = segment.offsetMs ?? sequence*state.segmentSeconds*1000;
-   const current = db.getFirstSync<{id: number; status: string; transcriptOffsetMs: number | null}>(
-    'SELECT id,status,transcript_offset_ms as transcriptOffsetMs FROM segments WHERE session_id=? AND sequence=?',state.sessionId,sequence);
+   let start = new Date(segment.startedAtMs).toISOString();
+   let finish = new Date(segment.endedAtMs).toISOString();
+   let duration = Math.max(0,segment.endedAtMs-segment.startedAtMs);
+   let offset = segment.offsetMs ?? sequence*state.segmentSeconds*1000;
+   const current = db.getFirstSync<Segment>(
+    `SELECT id,status,started_at as startedAt,ended_at as endedAt,duration_ms as durationMs,
+     start_offset_ms as startOffsetMs,transcript_offset_ms as transcriptOffsetMs
+     FROM segments WHERE session_id=? AND sequence=?`,state.sessionId,sequence);
+   if (segment.estimatedTiming && current?.endedAt) {
+    start = current.startedAt;
+    finish = current.endedAt;
+    duration = current.durationMs ?? duration;
+    if (sequence === 0 || (current.startOffsetMs ?? 0) > 0) offset = current.startOffsetMs ?? offset;
+    else if (archived) offset = Math.max(0,Date.parse(start)-Date.parse(archived.startedAt));
+   }
    const status = segment.path ? 'saved' : 'missing_file';
    if (!current) {
     db.runSync(`INSERT INTO segments(session_id,sequence,started_at,ended_at,uri,status,duration_ms,start_offset_ms)

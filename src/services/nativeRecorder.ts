@@ -6,6 +6,7 @@ export type NativeSegment = {
  startedAtMs: number;
  endedAtMs: number;
  offsetMs?: number;
+ estimatedTiming?: boolean;
 };
 
 export type RecorderState = {
@@ -16,6 +17,7 @@ export type RecorderState = {
  active: boolean;
  segments: string;
  error?: string;
+ stopUncertain?: boolean;
 };
 
 const NativeRecorder = requireNativeModule<{

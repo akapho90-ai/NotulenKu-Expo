@@ -68,10 +68,10 @@ export default function Home() {
   const startup = async () => {
    try {
     const current = await nativeRecorder.getState();
-   if (!mounted) return;
-   latest.current = current;
-   setRecording(current);
-   initializeDb();
+    if (!mounted) return;
+    latest.current = current;
+    setRecording(current);
+    initializeDb();
     const recovered = await nativeRecorder.recover();
     if (!mounted) return;
     for (const state of recovered) syncRecording(state,true);
