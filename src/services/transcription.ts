@@ -30,8 +30,3 @@ export function retryFailed(sessionId:string){
  // Explicitly reset failed rows, preserving attempts and error history in current schema's attempts counter.
  db.runSync("UPDATE segments SET status='saved',error=NULL WHERE session_id=? AND status='failed' AND uri IS NOT NULL",sessionId);
 }
-function markRetry(sessionId:string){
- const {db}=requireDb();
- db.runSync("UPDATE segments SET status='saved',error=NULL WHERE session_id=? AND status='failed' AND uri IS NOT NULL",sessionId);
-}
-function requireDb(){return {db: (global as any).__notulenku_db};}
