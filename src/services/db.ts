@@ -7,7 +7,10 @@ export function initializeDb(){
  CREATE TABLE IF NOT EXISTS segments(id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT NOT NULL, sequence INTEGER NOT NULL, started_at TEXT NOT NULL, ended_at TEXT, uri TEXT, status TEXT NOT NULL, duration_ms INTEGER, attempts INTEGER NOT NULL DEFAULT 0, error TEXT, transcript TEXT, transcript_offset_ms INTEGER, start_offset_ms INTEGER NOT NULL DEFAULT 0, UNIQUE(session_id,sequence));
  CREATE TABLE IF NOT EXISTS transcript_lines(id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT NOT NULL, segment_id INTEGER NOT NULL, offset_ms INTEGER NOT NULL, speaker TEXT NOT NULL, text TEXT NOT NULL);
  CREATE INDEX IF NOT EXISTS idx_segments_session ON segments(session_id,sequence);
- CREATE INDEX IF NOT EXISTS idx_lines_session ON transcript_lines(session_id,offset_ms);`);\n try{db.execSync('ALTER TABLE segments ADD COLUMN start_offset_ms INTEGER NOT NULL DEFAULT 0')}catch{}
+ CREATE INDEX IF NOT EXISTS idx_lines_session ON transcript_lines(session_id,offset_ms);`);
+ try {
+   db.execSync('ALTER TABLE segments ADD COLUMN start_offset_ms INTEGER NOT NULL DEFAULT 0');
+ } catch {}
 }
 export function createSession(id:string,title:string){
  db.runSync('INSERT INTO sessions(id,title,started_at,status,created_at) VALUES(?,?,?,?,?)',id,title,new Date().toISOString(),'recording',new Date().toISOString());
